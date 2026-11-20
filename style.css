@@ -1,0 +1,527 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at top, #172437, #080d17 76%);
+}
+
+#cavy-observatory {
+    --cavy-base: #0b121e;
+    --cavy-panel: #101a29;
+    --cavy-edge: #26354a;
+    --cavy-text: #f2f4f8;
+    --cavy-muted: #aebdd0;
+    --cavy-amber: #ffc174;
+    --cavy-number: "DIN Alternate", Bahnschrift, "Segoe UI", sans-serif;
+    box-sizing: border-box;
+    padding: max(12px, env(safe-area-inset-top)) 6px max(12px, env(safe-area-inset-bottom));
+    color-scheme: dark;
+    color: var(--cavy-text);
+    font: 14px/1.4 system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  #cavy-observatory *, #cavy-observatory *::before, #cavy-observatory *::after {
+    box-sizing: border-box;
+  }
+  #cavy-observatory [hidden] { display: none !important; }
+  #cavy-observatory :is(h1, h2, p, ul, dl, dd) { margin: 0; }
+  .cavy-screen button {
+    appearance: none;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+  #cavy-observatory i[data-lucide] { display: inline-block; width: 1em; height: 1em; }
+  #cavy-observatory svg.lucide { width: 1em; height: 1em; flex: none; vertical-align: middle; }
+  .cavy-screen {
+    max-width: 448px;
+    margin: 0 auto;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 20px;
+    background: var(--cavy-base);
+    box-shadow: 0 12px 44px #040a1b25;
+  }
+  .cavy-top, .cavy-brand, .cavy-tools, .cavy-city, .cavy-units {
+    display: flex;
+    align-items: center;
+  }
+  .cavy-top {
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--cavy-edge);
+  }
+  .cavy-brand, .cavy-tools { gap: 8px; white-space: nowrap; }
+  .cavy-brand { flex: none; }
+  .cavy-tools { min-width: 0; }
+  .cavy-brand img { flex: none; width: 32px; height: 32px; border-radius: 9px; }
+  #cavy-observatory h1 { font-size: 17px; font-weight: 680; letter-spacing: 0.04em; }
+  #cavy-observatory .cavy-city {
+    gap: 4px;
+    min-width: 0;
+    max-width: 115px;
+    min-height: 32px;
+    padding: 0 6px;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 8px;
+    background: #142031;
+    color: var(--cavy-text);
+    font-size: 12px;
+  }
+  .cavy-city span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .cavy-city :is(.lucide-chevron-down, i[data-lucide="chevron-down"]) { color: var(--cavy-amber); }
+  .cavy-units { flex: none; gap: 1px; padding: 2px; border: 1px solid var(--cavy-edge); border-radius: 8px; }
+  .cavy-units button {
+    min-width: 29px;
+    min-height: 28px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 5px;
+    color: var(--cavy-muted);
+    font-family: var(--cavy-number);
+    font-size: 12px;
+  }
+  .cavy-units button[aria-pressed="true"] { background: #30291f; color: var(--cavy-amber); }
+  .cavy-units button[aria-pressed="false"] { background: transparent; }
+  .cavy-main { display: grid; gap: 11px; padding: 0 12px 12px; }
+  .cavy-preview { padding: 2px 1px 0; }
+  .cavy-preview-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    color: var(--cavy-muted);
+    font-size: 12px;
+  }
+  .cavy-status-controls, .cavy-panel-heading, .cavy-hour-controls {
+    display: flex;
+    align-items: center;
+  }
+  .cavy-status-controls { gap: 2px; }
+  .cavy-status-controls button { white-space: nowrap; }
+  #cavy-observatory [data-refresh] { min-width: 28px; justify-content: center; }
+  #cavy-observatory button:disabled { opacity: .38; cursor: default; }
+  #cavy-observatory .cavy-motion {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    min-height: 29px;
+    padding: 0 5px;
+    border: 0;
+    background: transparent;
+    color: var(--cavy-muted);
+  }
+  .cavy-choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  #cavy-observatory .cavy-choices button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 35px;
+    padding: 0 4px;
+    white-space: nowrap;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 8px;
+    background: var(--cavy-panel);
+    color: var(--cavy-muted);
+    font-size: 12px;
+  }
+  #cavy-observatory .cavy-choices button[aria-pressed="true"] {
+    border-color: #957049;
+    background: #2b241f;
+    color: var(--cavy-amber);
+  }
+  .cavy-hero {
+    --cavy-scene-grade: brightness(.92) saturate(.94);
+    --cavy-pet-grade: brightness(.94) saturate(.90);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    min-height: 272px;
+    overflow: hidden;
+    border: 1px solid #324055;
+    border-radius: 13px;
+    background: #132337;
+  }
+  .cavy-hero[data-condition="clear"] { --cavy-scene-grade: brightness(1.27) saturate(1.17); --cavy-pet-grade: brightness(1.05) saturate(1.08); }
+  .cavy-hero[data-condition="rain"] { --cavy-scene-grade: brightness(.76) saturate(.77); --cavy-pet-grade: brightness(.88) saturate(.89); }
+  .cavy-hero[data-condition="snow"] { --cavy-scene-grade: brightness(1.04) saturate(.53); --cavy-pet-grade: brightness(.99) saturate(.77); }
+  .cavy-art, .cavy-scene, .cavy-sky, .cavy-atmosphere, .cavy-shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .cavy-art { z-index: -1; }
+  .cavy-scene { object-fit: cover; object-position: 72% center; opacity: 0; filter: var(--cavy-scene-grade); }
+  .cavy-scene.is-visible { opacity: 1; }
+  .cavy-sky { overflow: hidden; mask-image: linear-gradient(#000 0%, #000 27%, #000b 35%, transparent 57%); }
+  .cavy-sky span {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    height: 100%;
+    min-width: 100%;
+    aspect-ratio: 8 / 5;
+    opacity: 0;
+    background-image: url("assets/skies.webp");
+    background-size: 202% 202%;
+    background-repeat: no-repeat;
+  }
+  .cavy-sky [data-sky="clear"] { background-position: left top; transform: translateY(-6%); }
+  .cavy-sky [data-sky="cloudy"] { background-position: right top; animation-duration: 11s; }
+  .cavy-sky [data-sky="rain"] { background-position: left bottom; animation-duration: 15s; }
+  .cavy-sky [data-sky="snow"] { background-position: right bottom; animation-duration: 21s; }
+  .cavy-sky span:not([data-sky="clear"]) {
+    transform: scale(1.12) translateX(-3.2%);
+    animation-name: cavy-cloud-drift;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-play-state: paused;
+  }
+  .cavy-hero[data-condition="clear"] [data-sky="clear"],
+  .cavy-hero[data-condition="cloudy"] [data-sky="cloudy"],
+  .cavy-hero[data-condition="rain"] [data-sky="rain"],
+  .cavy-hero[data-condition="snow"] [data-sky="snow"] {
+    opacity: 1;
+  }
+  .cavy-hero[data-playing="true"][data-condition="cloudy"] [data-sky="cloudy"],
+  .cavy-hero[data-playing="true"][data-condition="rain"] [data-sky="rain"],
+  .cavy-hero[data-playing="true"][data-condition="snow"] [data-sky="snow"] {
+    animation-play-state: running;
+  }
+  .cavy-frost {
+    position: absolute;
+    inset: auto 0 0;
+    height: 14%;
+    opacity: 0;
+    background: url("assets/frost.webp") center bottom / max(100%, 390px) auto no-repeat;
+    mask-image: linear-gradient(transparent, #000 80%);
+    filter: saturate(.62) brightness(.92);
+  }
+  .cavy-hero[data-condition="snow"] .cavy-frost { opacity: .82; }
+  #cavy-observatory .cavy-pet {
+    position: absolute;
+    z-index: 1;
+    right: 1.2%;
+    bottom: 9.2%;
+    width: min(46%, 184px);
+    border: 0;
+    border-radius: 20%;
+    padding: 0;
+    background: transparent;
+    touch-action: manipulation;
+  }
+  .cavy-pet-shadow {
+    position: absolute;
+    inset: auto 7% 4% 12%;
+    height: 10%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #060812c7 8%, #0509168a 47%, transparent 74%);
+    filter: blur(2px);
+  }
+  .cavy-pet-response, .cavy-pet-body {
+    position: relative;
+    display: block;
+    transform-origin: 59% 92%;
+  }
+  .cavy-pet-response { filter: var(--cavy-pet-grade) drop-shadow(1px 3px 3px #070b17a2); }
+  .cavy-pet-body { animation: cavy-pet-breath 5.6s ease-in-out infinite paused; }
+  .cavy-pet-image, .cavy-pet-blink { display: block; width: 100%; pointer-events: none; }
+  .cavy-pet-action {
+    position: absolute;
+    left: 51%;
+    bottom: -16px;
+    transform: translateX(-50%);
+    padding: 1px 6px;
+    border: 1px solid #aa875d85;
+    border-radius: 6px;
+    background: #131823d9;
+    color: #ffd094;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .cavy-pet-blink {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    opacity: 0;
+    mask-image:
+      radial-gradient(ellipse 4.6% 7.2% at 47.9% 25.8%, #000 76%, transparent 100%),
+      radial-gradient(ellipse 3.2% 5.0% at 32.7% 21.1%, #000 76%, transparent 100%);
+    animation: cavy-pet-blink 6.4s linear infinite paused;
+  }
+  .cavy-hero[data-playing="true"] :is(.cavy-pet-body, .cavy-pet-blink) { animation-play-state: running; }
+  .cavy-atmosphere { z-index: 2; }
+  .cavy-shade {
+    z-index: 3;
+    background:
+      linear-gradient(90deg, #080f1bf5 0%, #0a1321e3 25%, #0b1623b4 41%, #0b162327 62%, #0b162300 83%),
+      linear-gradient(0deg, #07111e4c, transparent 22%);
+  }
+  .cavy-landscape {
+    position: absolute;
+    z-index: 4;
+    top: 10px;
+    right: 10px;
+    padding: 3px 6px;
+    border: 1px solid #a8c0d654;
+    border-radius: 6px;
+    background: #0b1523ab;
+    color: #e0eaf7;
+    font-size: 11px;
+    pointer-events: none;
+  }
+  .cavy-reading { position: relative; z-index: 4; padding: 19px 16px; pointer-events: none; }
+  #cavy-observatory .cavy-heading {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 630;
+  }
+  .cavy-heading::before {
+    content: "";
+    width: 3px;
+    height: 13px;
+    border-radius: 2px;
+    background: var(--cavy-amber);
+  }
+  .cavy-temperature {
+    display: flex;
+    align-items: start;
+    margin: 6px 0 1px;
+    font: 660 78px/0.99 var(--cavy-number);
+    letter-spacing: -0.068em;
+    font-variant-numeric: tabular-nums;
+  }
+  .cavy-temperature sup { margin: 4px 0 0 3px; font: 500 36px/1 var(--cavy-number); }
+  .cavy-condition { display: flex; align-items: center; gap: 7px; font-size: 18px; font-weight: 680; }
+  .cavy-condition-icon { color: var(--cavy-amber); }
+  #cavy-observatory :is(.cavy-feels, .cavy-range) {
+    color: #d1def0;
+    font-size: 12px;
+    line-height: 1.75;
+  }
+  #cavy-observatory .cavy-feels { margin-top: 4px; }
+  #cavy-observatory .cavy-weather-detail {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 7px;
+    border: 1px solid #ecba7959;
+    border-radius: 6px;
+    background: #132133b8;
+    color: var(--cavy-amber);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cavy-note {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 11px;
+    border: 1px solid #40372c;
+    border-radius: 9px;
+    background: #1b1a1d;
+    color: #e1d9ce;
+    font-size: 12px;
+  }
+  .cavy-note-label { display: inline-flex; align-items: center; gap: 5px; flex: none; color: var(--cavy-amber); }
+  .cavy-panel {
+    min-width: 0;
+    padding: 11px 12px 9px;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 11px;
+    background: var(--cavy-panel);
+  }
+  .cavy-panel-heading { justify-content: space-between; gap: 8px; }
+  .cavy-hour-controls { gap: 5px; }
+  #cavy-observatory .cavy-hour-controls button {
+    min-width: 26px;
+    min-height: 26px;
+    padding: 3px;
+    font-size: 13px;
+  }
+  #cavy-observatory .cavy-empty { margin: 12px 0 3px; color: var(--cavy-muted); font-size: 12px; }
+  .cavy-hours {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin-top: 9px;
+    font-size: 11px;
+    color: var(--cavy-muted);
+    text-align: center;
+  }
+  .cavy-hour { display: grid; justify-items: center; gap: 4px; }
+  .cavy-hour .cavy-icon { font-size: 16px; }
+  .cavy-icon { display: inline-flex; align-items: center; color: #b8c8dc; }
+  .cavy-icon:is([data-icon-weather="clear"], [data-icon-weather="cloudy"]) { color: #ffcd90; }
+  .cavy-icon[data-icon-weather="rain"] { color: #8fc7f1; }
+  .cavy-icon[data-icon-weather="snow"] { color: #cbe3fd; }
+  .cavy-graph { display: block; width: 100%; height: 67px; overflow: visible; }
+  .cavy-grid { stroke: var(--cavy-edge); stroke-width: 1; }
+  .cavy-curve { stroke: var(--cavy-amber); stroke-width: 1.6; stroke-linejoin: round; }
+  .cavy-points circle { fill: var(--cavy-amber); stroke: var(--cavy-panel); stroke-width: 1.5; }
+  .cavy-points text { fill: var(--cavy-text); font: 600 13px var(--cavy-number); text-anchor: middle; }
+  .cavy-week { list-style: none; padding: 5px 0 0; }
+  .cavy-day {
+    display: grid;
+    grid-template-columns: 34px minmax(53px, 0.9fr) 30px minmax(22px, 1.6fr) 30px;
+    align-items: center;
+    gap: 6px;
+    min-height: 29px;
+    font-size: 12px;
+  }
+  .cavy-day + .cavy-day { border-top: 1px solid #26354a9c; }
+  .cavy-day-weather { display: inline-flex; align-items: center; gap: 5px; color: var(--cavy-muted); white-space: nowrap; }
+  .cavy-day-name, .cavy-day-condition { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cavy-day-weather .cavy-icon { font-size: 14px; }
+  .cavy-low, .cavy-high {
+    white-space: nowrap;
+    text-align: right;
+    font: 540 13px var(--cavy-number);
+    font-variant-numeric: tabular-nums;
+  }
+  .cavy-low { color: var(--cavy-muted); }
+  .cavy-track { position: relative; height: 4px; border-radius: 6px; background: #29374d; }
+  .cavy-track > span {
+    position: absolute;
+    inset-block: 0;
+    left: var(--cavy-start);
+    width: var(--cavy-length);
+    border-radius: inherit;
+    background: linear-gradient(90deg, #9ab6d8, #ffc17b);
+  }
+  .cavy-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 9px; }
+  .cavy-metrics > div { padding: 2px 0 3px; text-align: center; }
+  .cavy-metrics > div + div { border-inline-start: 1px solid var(--cavy-edge); }
+  .cavy-metrics dt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+    color: var(--cavy-muted);
+    font-size: 11px;
+  }
+  .cavy-metrics dt .lucide { color: var(--cavy-amber); }
+  #cavy-observatory .cavy-metrics dd {
+    margin-top: 3px;
+    font: 620 17px var(--cavy-number);
+    font-variant-numeric: tabular-nums;
+  }
+  .cavy-data-credit { color: var(--cavy-muted); text-align: right; font-size: 11px; }
+  .cavy-data-credit a { color: inherit; text-decoration: none; }
+  .cavy-data-credit a:hover { text-decoration: underline; }
+  .cavy-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .cavy-screen[data-motion="true"] .cavy-scene { transition: opacity 520ms ease, filter 520ms ease; }
+  .cavy-screen[data-motion="true"] :is(.cavy-frost, .cavy-sky span) { transition: opacity 520ms ease; }
+  .cavy-screen[data-motion="true"] .cavy-pet-response { transition: filter 520ms ease; }
+  .cavy-screen[data-motion="true"] .cavy-track > span { transition: left 420ms ease, width 420ms ease; }
+  @keyframes cavy-cloud-drift {
+    to { transform: scale(1.12) translateX(3.2%); }
+  }
+  @keyframes cavy-pet-breath {
+    0%, 36%, 72%, 100% { transform: scale(1, 1); }
+    18%, 57% { transform: translateY(-1px) scale(1.01, 1.04); }
+    87% { transform: translate(-1.5%, -2px) scale(1.02, 1.04) rotate(-1.8deg); }
+  }
+  @keyframes cavy-pet-blink {
+    0%, 15%, 21%, 68%, 73%, 100% { opacity: 0; }
+    17%, 19%, 69%, 71% { opacity: 1; }
+  }
+  .cavy-location-dialog {
+    width: min(354px, calc(100% - 24px));
+    max-height: calc(100% - 22px);
+    padding: 15px;
+    border: 1px solid #3a4a61;
+    border-radius: 14px;
+    background: var(--cavy-base);
+    color: var(--cavy-text);
+  }
+  .cavy-location-dialog::backdrop { background: #040811ad; }
+  .cavy-dialog-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  #cavy-observatory .cavy-dialog-heading h2 { font-size: 16px; font-weight: 650; }
+  #cavy-observatory .cavy-icon-button {
+    display: grid;
+    place-items: center;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 4px;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 8px;
+    background: var(--cavy-panel);
+    color: var(--cavy-muted);
+    font-size: 16px;
+  }
+  .cavy-location-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  #cavy-observatory .cavy-location-list button {
+    padding: 7px 9px;
+    min-height: 48px;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 8px;
+    background: var(--cavy-panel);
+    text-align: left;
+    font-weight: 600;
+  }
+  #cavy-observatory .cavy-location-list button[aria-pressed="true"] {
+    border-color: #957049;
+    background: #2b241f;
+    color: var(--cavy-amber);
+  }
+  .cavy-location-list span { display: block; color: var(--cavy-muted); font-size: 11px; font-weight: 400; }
+  .cavy-location-form { display: grid; gap: 6px; margin-top: 13px; }
+  .cavy-location-form label { color: var(--cavy-muted); font-size: 12px; }
+  .cavy-location-input { display: flex; gap: 6px; }
+  .cavy-location-input input {
+    flex: 1;
+    min-width: 0;
+    min-height: 39px;
+    padding: 0 8px;
+    border: 1px solid var(--cavy-edge);
+    border-radius: 8px;
+    background: #142031;
+    color: inherit;
+    font: 16px/1.25 system-ui, "Microsoft YaHei", sans-serif;
+  }
+  #cavy-observatory .cavy-location-input button {
+    min-width: 50px;
+    min-height: 39px;
+    border: 1px solid #957049;
+    border-radius: 8px;
+    background: #2b241f;
+    color: var(--cavy-amber);
+  }
+  @media (max-width: 365px) {
+    .cavy-top { gap: 5px; padding-inline: 8px; }
+    .cavy-brand, .cavy-tools { gap: 4px; }
+    .cavy-brand img { width: 23px; height: 23px; border-radius: 6px; }
+    #cavy-observatory h1 { font-size: 15px; letter-spacing: 0.01em; }
+    #cavy-observatory .cavy-city { max-width: 77px; padding-inline: 4px; gap: 2px; }
+    #cavy-observatory .cavy-city :is(.lucide-map-pin, i[data-lucide="map-pin"]) { display: none; }
+    .cavy-main { padding-inline: 9px; }
+    .cavy-hero { min-height: 250px; }
+    .cavy-reading { padding-inline: 12px; }
+    .cavy-temperature { font-size: 69px; }
+    .cavy-panel { padding-inline: 9px; }
+    .cavy-day { gap: 4px; }
+  }
+  @media (pointer: coarse) {
+    #cavy-observatory :is(.cavy-motion, .cavy-choices button, .cavy-units button, .cavy-city, .cavy-icon-button, .cavy-location-input input, .cavy-location-input button) { min-height: 44px; }
+    .cavy-units button { min-width: 44px; }
+    #cavy-observatory .cavy-hour-controls button, #cavy-observatory [data-refresh] { min-width: 44px; min-height: 44px; }
+  }
