@@ -23,7 +23,7 @@ body {
     box-sizing: border-box;
   }
   #cavy-observatory [hidden] { display: none !important; }
-  #cavy-observatory :is(h1, h2, p, ul, dl, dd) { margin: 0; }
+  #cavy-observatory :is(h1, h2, h3, p, ul, dl, dd) { margin: 0; }
   .cavy-screen button {
     appearance: none;
     cursor: pointer;
@@ -127,7 +127,7 @@ body {
   }
   .cavy-units button[aria-pressed="true"] { background: #30291f; color: var(--cavy-amber); }
   .cavy-units button[aria-pressed="false"] { background: transparent; }
-  .cavy-panel-heading, .cavy-hour-controls {
+  .cavy-panel-heading, .cavy-hour-toolbar, .cavy-hour-modes, .cavy-hour-controls {
     display: flex;
     align-items: center;
   }
@@ -365,9 +365,9 @@ body {
     line-height: 1.75;
   }
   #cavy-observatory .cavy-feels { margin-top: 4px; }
+  .cavy-weather-facts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
   #cavy-observatory .cavy-weather-detail {
     display: inline-block;
-    margin-top: 10px;
     padding: 3px 7px;
     border-radius: 6px;
     background: #20304bc2;
@@ -375,6 +375,8 @@ body {
     font-size: 12px;
     font-variant-numeric: tabular-nums;
   }
+  #cavy-observatory .cavy-air { background: #18302ecf; color: #c2e9d7; white-space: nowrap; }
+  #cavy-observatory .cavy-report-time { margin-top: 7px; color: #becbde; font-size: 11px; }
   .cavy-note {
     display: flex;
     align-items: baseline;
@@ -393,6 +395,21 @@ body {
     background: var(--cavy-panel);
   }
   .cavy-panel-heading { justify-content: space-between; gap: 8px; }
+  #cavy-hourly { white-space: nowrap; }
+  .cavy-hour-toolbar { gap: 7px; }
+  .cavy-hour-modes { gap: 2px; padding: 2px; border-radius: 8px; background: #0b121e; }
+  #cavy-observatory .cavy-hour-modes button {
+    min-width: 39px;
+    min-height: 40px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--cavy-muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  #cavy-observatory .cavy-hour-modes button[aria-pressed="true"] { background: #283a50; color: #e6edf9; }
   .cavy-hour-controls { gap: 5px; }
   #cavy-observatory .cavy-hour-controls button {
     min-width: 44px;
@@ -400,6 +417,7 @@ body {
     font-size: 15px;
   }
   #cavy-observatory .cavy-empty { margin: 11px 0 5px; color: var(--cavy-muted); font-size: 13px; }
+  #cavy-observatory .cavy-rain-hint { margin: 7px 0 0; color: #a6d6f6; font-size: 12px; }
   .cavy-hour-scroll {
     margin-top: 1px;
     overflow-x: auto;
@@ -430,18 +448,38 @@ body {
   .cavy-points circle { fill: #b5c9e3; stroke: var(--cavy-panel); stroke-width: 1.5; }
   .cavy-points text { fill: var(--cavy-text); font: 600 13px var(--cavy-number); text-anchor: middle; }
   .cavy-points [data-current] { fill: var(--cavy-amber); }
+  .cavy-graph[data-view="precipitation"] .cavy-curve { stroke: #6bbbee; }
+  .cavy-graph[data-view="precipitation"] .cavy-points circle { fill: #9ed6f8; }
   .cavy-week { list-style: none; padding: 8px 0 0; }
-  .cavy-day {
+  .cavy-day-summary {
     display: grid;
-    grid-template-columns: 37px minmax(56px, .8fr) 32px minmax(24px, 1.6fr) 32px;
+    grid-template-columns: 35px minmax(48px, .8fr) 29px minmax(17px, 1.6fr) 29px 13px;
     align-items: center;
     gap: 6px;
-    min-height: 35px;
+    min-height: 44px;
     padding-inline: 7px;
+    border-radius: 7px;
+    list-style: none;
     font-size: 13px;
+    cursor: pointer;
   }
+  .cavy-day-summary::-webkit-details-marker { display: none; }
+  .cavy-day-summary:hover { background: #243650; }
+  .cavy-day-summary > .lucide-chevron-down { justify-self: end; color: var(--cavy-muted); }
+  .cavy-day details[open] .cavy-day-summary > .lucide-chevron-down { transform: rotate(180deg); }
   .cavy-day + .cavy-day { border-top: 1px solid #26354a83; }
   .cavy-day[data-today] { border-radius: 7px; background: #1a293d; }
+  .cavy-day-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 13px;
+    padding: 8px 10px 12px;
+    font-size: 13px;
+  }
+  .cavy-day-details dt { color: var(--cavy-muted); font-size: 11px; }
+  .cavy-day-details dd { font-variant-numeric: tabular-nums; }
+  .cavy-day-details:empty { display: none; }
+  #cavy-observatory .cavy-day-empty { padding: 5px 10px 10px; color: var(--cavy-muted); font-size: 12px; }
   .cavy-day-weather { display: inline-flex; align-items: center; gap: 5px; color: var(--cavy-muted); white-space: nowrap; }
   .cavy-day-name, .cavy-day-condition { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cavy-day-weather .cavy-icon { font-size: 14px; }
@@ -511,7 +549,7 @@ body {
     17%, 19%, 69%, 71% { opacity: 1; }
   }
   .cavy-location-dialog {
-    width: min(354px, calc(100% - 24px));
+    width: min(390px, calc(100% - 24px));
     max-height: calc(100% - 22px);
     padding: 15px;
     border: 1px solid #3a4a61;
@@ -528,6 +566,24 @@ body {
     margin-bottom: 12px;
   }
   #cavy-observatory .cavy-dialog-heading h2 { font-size: 16px; font-weight: 650; }
+  #cavy-observatory .cavy-favorite-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 44px;
+    margin-inline-start: auto;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 8px;
+    background: #1a293c;
+    color: var(--cavy-muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  #cavy-observatory .cavy-favorite-current[aria-pressed="true"],
+  #cavy-observatory .cavy-favorite-remove { color: var(--cavy-amber); }
+  .cavy-favorite-current[aria-pressed="true"] .lucide-star,
+  .cavy-favorite-remove .lucide-star { fill: currentColor; }
   #cavy-observatory .cavy-icon-button {
     display: grid;
     place-items: center;
@@ -541,13 +597,18 @@ body {
     font-size: 16px;
   }
   #cavy-observatory .cavy-icon-button:hover:not(:disabled) { background: #243750; color: var(--cavy-text); }
-  #cavy-observatory .cavy-location-list button {
+  .cavy-location-section { margin-top: 12px; }
+  #cavy-observatory .cavy-location-section h3 { margin-bottom: 6px; color: var(--cavy-muted); font-size: 12px; }
+  .cavy-location-list { display: grid; gap: 5px; padding: 0; list-style: none; }
+  .cavy-location-list > li { display: flex; align-items: center; gap: 6px; }
+  #cavy-observatory .cavy-place-choice {
     display: grid;
+    flex: 1;
     grid-template-columns: 18px minmax(0, 1fr) 17px;
     align-items: center;
     gap: 11px;
     width: 100%;
-    min-height: 58px;
+    min-height: 49px;
     padding: 8px 11px;
     border: 1px solid transparent;
     border-radius: 10px;
@@ -555,14 +616,16 @@ body {
     text-align: left;
     font-weight: 600;
   }
-  .cavy-location-list button[aria-pressed="false"] :is(.lucide-check, [data-lucide="check"]) { visibility: hidden; }
-  #cavy-observatory .cavy-location-list button[aria-pressed="true"] {
+  #cavy-observatory .cavy-place-choice:hover { background: #22334a; }
+  .cavy-place-choice[aria-current="false"] :is(.lucide-check, [data-lucide="check"]) { visibility: hidden; }
+  #cavy-observatory .cavy-place-choice[aria-current="true"] {
     border-color: #957049;
     background: #2b241f;
     color: var(--cavy-amber);
   }
-  .cavy-location-name > span { display: block; color: var(--cavy-muted); font-size: 12px; font-weight: 400; }
-  .cavy-location-form { display: grid; gap: 7px; margin-top: 15px; }
+  .cavy-location-name { overflow-wrap: anywhere; }
+  .cavy-location-name small { display: block; color: var(--cavy-muted); font-size: 12px; font-weight: 400; }
+  .cavy-location-form { display: grid; gap: 7px; }
   .cavy-location-form label { color: var(--cavy-muted); font-size: 13px; }
   .cavy-location-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
   .cavy-location-input input {
@@ -584,6 +647,9 @@ body {
     background: #253953;
     color: var(--cavy-text);
   }
+  #cavy-observatory .cavy-location-status:not(:empty) { margin-top: 8px; color: var(--cavy-muted); font-size: 12px; }
+  #cavy-observatory .cavy-location-status[data-error] { color: #ffc2af; }
+  .cavy-location-input [aria-invalid="true"] { border-color: #d88778; }
   @media (max-width: 365px) {
     .cavy-top { gap: 4px; padding-inline: 9px; }
     .cavy-brand { gap: 5px; }
@@ -598,7 +664,9 @@ body {
     .cavy-reading { padding-inline: 12px; }
     .cavy-temperature { font-size: 69px; }
     .cavy-panel { padding-inline: 10px; }
-    .cavy-day { gap: 4px; padding-inline: 5px; }
+    .cavy-day-summary { gap: 4px; padding-inline: 5px; }
+    .cavy-hour-toolbar, .cavy-hour-controls { gap: 3px; }
+    #cavy-observatory .cavy-hour-controls button { min-width: 37px; }
     #cavy-observatory .cavy-choices button { gap: 3px; padding-inline: 3px; font-size: 11px; }
   }
   @media (pointer: coarse) {
@@ -620,5 +688,4 @@ body {
     .cavy-reading { padding-inline: 23px; }
     .cavy-temperature { font-size: 90px; }
     .cavy-panel { padding: 15px 16px 13px; }
-    .cavy-day { min-height: 38px; }
   }

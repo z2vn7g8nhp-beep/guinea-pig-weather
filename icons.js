@@ -6,6 +6,7 @@ const weatherIcons = {
   'refresh-cw': '<path d="M20 9a8 8 0 1 0 0 6M20 3v6h-6"/>',
   'sliders-horizontal': '<path d="M3 7h7m4 0h7M3 17h11m4 0h3"/><circle cx="12" cy="7" r="2"/><circle cx="16" cy="17" r="2"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
+  star: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
   play: '<path d="m8 5 12 7-12 7Z"/>',
   pause: '<path d="M9 5H6v14h3ZM18 5h-3v14h3Z"/>',
   x: '<path d="m6 6 12 12M6 18 18 6"/>',

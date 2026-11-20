@@ -15,6 +15,8 @@
   const week = root.querySelector('.cavy-week');
   const emptyHours = root.querySelector('[data-empty-hours]');
   const emptyWeek = root.querySelector('[data-empty-week]');
+  const hourModeButtons = Array.from(root.querySelectorAll('[data-hour-view]'));
+  const rainHint = root.querySelector('[data-rain-hint]');
   const previousHour = root.querySelector('[data-hour-previous]');
   const nextHour = root.querySelector('[data-hour-next]');
   const syncLabel = root.querySelector('[data-weather-status]');
@@ -34,9 +36,6 @@
   const cityButton = root.querySelector('.cavy-city');
   const cityName = root.querySelector('[data-city-name]');
   const landscape = root.querySelector('[data-landscape]');
-  const locationDialog = root.querySelector('.cavy-location-dialog');
-  const locationInput = root.querySelector('#cavy-other-city');
-  const xianButton = root.querySelector('[data-location]');
   const readout = root.querySelector('[data-readout]');
   const readoutUnit = readout.querySelector('sup');
   const currentIcon = root.querySelector('[data-current-icon]');
@@ -84,23 +83,25 @@
     }
   };
 
-  const defaultCity = xianButton.dataset.location;
-  const cityPreference = 'selected-city';
-  const legacyPresets = new Set(['杭州', '上海', '西安', '青岛', '哈尔滨']);
-  const previousCity = cityLabel(source.prefs.get('city'));
-  const previousCustomCity = legacyPresets.has(previousCity.replace(/市$/u, '')) ? '' : previousCity;
+  const defaultPlace = { name: '西安', area: '陕西省', adcode: '610100', query: '西安' };
+  const cityPreference = 'selected-place';
   const xianLocation = { landscape: '古城墙', backdrop: 'xian', offset: -8 };
   const neutralLocation = { landscape: '', backdrop: 'neutral', offset: 0 };
+  const demoProbabilities = { clear: 0, cloudy: 10, overcast: 20, rain: 90, drizzle: 65, snow: 80 };
+  const motionPreference = source.prefs.get('motion');
 
   let weather = 'cloudy';
-  let city = cityLabel(source.prefs.get(cityPreference)) || previousCustomCity || defaultCity;
+  let city = restoreCity();
   let entry = source.cached(city);
+  if (entry) city = resolvedCity(city, entry.data);
   let syncState = entry ? 'cached' : 'loading';
   let unit = source.prefs.get('unit') === 'F' ? 'F' : 'C';
   let request;
   let demo = false;
   let demoWeather = 'cloudy';
-  let motionOverride;
+  let motionOverride = motionPreference === 'on' ? true : motionPreference === 'off' ? false : undefined;
+  let hourView = 'temperature';
+  let renderedForecast;
   let inView = true;
   let animationFrame = 0;
   let previousFrame = null;
@@ -124,13 +125,27 @@
   const format = value => Number.isFinite(value) ? `${temperature(value)}°` : '—';
   const random = (min, max) => min + Math.random() * (max - min);
   const motionEnabled = () => motionOverride ?? !reducedMotion.matches;
-  const displayedCity = () => (cityLabel(entry?.data.city) || city).replace(/市$/u, '');
-  const location = () => displayedCity() === defaultCity ? xianLocation : neutralLocation;
+  const location = () => city.adcode === defaultPlace.adcode ? xianLocation : neutralLocation;
 
-  function cityLabel(value) {
-    if (typeof value !== 'string') return '';
-    const clean = value.trim().replace(/\s+/g, ' ').slice(0, 24);
-    return clean === `${defaultCity}市` ? defaultCity : clean;
+  function defaultOrSelected(selected) {
+    return selected.adcode === defaultPlace.adcode
+      || (!selected.adcode && selected.name.replace(/市$/u, '') === defaultPlace.name) ? defaultPlace : selected;
+  }
+
+  function restoreCity() {
+    try {
+      const saved = source.place(JSON.parse(source.prefs.get(cityPreference)));
+      if (saved) return defaultOrSelected(saved);
+    } catch {}
+    const legacyPresets = new Set(['杭州', '上海', '西安', '青岛', '哈尔滨']);
+    const legacy = source.cityName(source.prefs.get('city'));
+    const name = source.cityName(source.prefs.get('selected-city'))
+      || (legacyPresets.has(legacy.replace(/市$/u, '')) ? '' : legacy);
+    return name ? defaultOrSelected({ name, query: name }) : defaultPlace;
+  }
+
+  function resolvedCity(selected, data) {
+    return defaultOrSelected(source.located(selected, data));
   }
 
   function demoForecast() {
@@ -145,15 +160,31 @@
       feels: base.feels + offset,
       low: base.week[0][1] + offset,
       high: base.week[0][2] + offset,
-      hours: base.hours.map(([value, kind], index) => [value + offset, kind, times[index], weatherTypes[kind].label]),
-      week: base.week.map(([kind, low, high], index) => [kind, low + offset, high + offset, weatherTypes[kind].label, weekdays[index]])
+      hours: base.hours.map(([value, kind], index) => ({
+        value: value + offset, kind, time: times[index], condition: weatherTypes[kind].label,
+        current: index === 0, pop: demoProbabilities[kind]
+      })),
+      week: base.week.map(([kind, low, high], index) => ({
+        kind, low: low + offset, high: high + offset, condition: weatherTypes[kind].label,
+        dayLabel: weekdays[index], isToday: index === 0,
+        details: [['白天', weatherTypes[kind].label], ['降水概率', source.percent(demoProbabilities[kind])]]
+      }))
     };
   }
 
-  for (const day of weekdays) {
+  for (let index = 0; index < weekdays.length; index++) {
     const row = document.createElement('li');
     row.className = 'cavy-day';
-    row.innerHTML = `<strong class="cavy-day-name">${day}</strong><span class="cavy-day-weather"><span data-day-icon></span><span class="cavy-day-condition"></span></span><span class="cavy-low"></span><span class="cavy-track" aria-hidden="true"><span></span></span><span class="cavy-high"></span>`;
+    row.innerHTML = `<details>
+      <summary class="cavy-day-summary">
+        <strong class="cavy-day-name"></strong>
+        <span class="cavy-day-weather"><span data-day-icon></span><span class="cavy-day-condition"></span></span>
+        <span class="cavy-low"></span><span class="cavy-track" aria-hidden="true"><span></span></span><span class="cavy-high"></span>
+        ${icon('chevron-down')}
+      </summary>
+      <dl class="cavy-day-details"></dl>
+      <p class="cavy-day-empty" hidden>暂无这一天的详细预报</p>
+    </details>`;
     week.append(row);
   }
 
@@ -201,39 +232,55 @@
   }
 
   function updateHours(forecast, animate) {
-    const hourlyTemps = forecast.map(([value]) => value).filter(Number.isFinite);
-    hourScroll.hidden = forecast.length === 0;
-    graph.hidden = hourlyTemps.length === 0;
-    emptyHours.hidden = forecast.length > 0;
-    hourTrack.style.setProperty('--cavy-hour-count', Math.max(1, forecast.length));
+    const precipitation = hourView === 'precipitation';
+    const rows = precipitation ? forecast.filter(hour => !hour.current) : forecast;
+    const valueFor = hour => precipitation ? hour.pop : hour.value;
+    const displayValue = precipitation ? source.percent : format;
+    const values = rows.map(valueFor).filter(Number.isFinite);
+    const hasValues = values.length > 0;
+    const hasRows = precipitation ? hasValues : rows.length > 0;
+    const firstRain = forecast.find(hour => !hour.current && (hour.kind === 'rain' || hour.kind === 'drizzle'));
+    const rainProbability = firstRain?.pop;
+    rainHint.hidden = !firstRain;
+    rainHint.textContent = firstRain ? `${firstRain.day ?? ''}${firstRain.time} 起可能降雨${Number.isFinite(rainProbability) ? ' · ' + source.percent(rainProbability) : ''}` : '';
+
+    hourScroll.hidden = !hasRows;
+    graph.hidden = !hasValues;
+    graph.dataset.view = hourView;
+    emptyHours.hidden = hasRows;
+    emptyHours.textContent = precipitation ? '暂无逐时降水概率' : '暂无逐时预报';
+    hourTrack.style.setProperty('--cavy-hour-count', Math.max(1, rows.length));
     hours.replaceChildren();
     pointGroup.replaceChildren();
-    chartPoints = forecast.map(([value, kind, time, condition, date]) => {
-      const current = time === '现在';
+    const accessibleHours = [];
+    chartPoints = rows.map(hour => {
+      const { current, kind, dateLabel = '', condition } = hour;
+      const time = current && !demo && syncState === 'cached' ? '上次' : hour.time;
+      const formatted = displayValue(valueFor(hour));
       const item = document.createElement('div');
       item.className = 'cavy-hour';
-      item.toggleAttribute('data-current', current);
+      item.toggleAttribute('data-current', Boolean(current));
       item.innerHTML = '<span class="cavy-hour-date"></span><span class="cavy-hour-time"></span>' + weatherIcon(kind);
       item.querySelector('.cavy-hour-time').textContent = time;
-      item.querySelector('.cavy-hour-date').textContent = date ?? '';
-      item.title = `${date ?? ''}${time} ${condition}`;
+      item.querySelector('.cavy-hour-date').textContent = dateLabel;
+      item.title = `${dateLabel}${time} ${condition} · ${formatted}`;
       hours.append(item);
+      accessibleHours.push(`${dateLabel}${time}${condition}，${formatted}`);
 
       const dot = pointGroup.appendChild(svgElement('circle'));
       const label = pointGroup.appendChild(svgElement('text'));
-      dot.toggleAttribute('data-current', current);
-      label.toggleAttribute('data-current', current);
+      dot.toggleAttribute('data-current', Boolean(current));
+      label.toggleAttribute('data-current', Boolean(current));
       dot.setAttribute('r', current ? '4.5' : '3');
-      label.textContent = format(value);
+      label.textContent = formatted;
       return { dot, label };
     });
-    graph.setAttribute('aria-label', '逐时气温，' + forecast.map(([value, , time, condition, date]) =>
-      `${date ?? ''}${time}${condition}，${format(value)}`
-    ).join('；'));
-
-    const low = Math.min(...hourlyTemps);
-    const spread = Math.max(Math.max(...hourlyTemps) - low, 3);
-    const targetPositions = forecast.map(([value]) => Number.isFinite(value) ? 55 - 28 * (value - low) / spread : null);
+    const chartLabel = precipitation ? '逐时降水概率' : '逐时气温';
+    hourScroll.setAttribute('aria-label', chartLabel + '曲线');
+    graph.setAttribute('aria-label', chartLabel + '，' + accessibleHours.join('；'));
+    const low = precipitation ? 0 : Math.min(...values);
+    const spread = precipitation ? 100 : Math.max(Math.max(...values) - low, 3);
+    const targetPositions = rows.map(valueFor).map(value => Number.isFinite(value) ? 55 - 28 * (value - low) / spread : null);
     if (animate && targetPositions.length && chartPositions.length === targetPositions.length
       && targetPositions.every(Number.isFinite) && chartPositions.every(Number.isFinite) && motionEnabled() && inView) {
       chartTransition = { from: chartPositions, to: targetPositions, start: performance.now() };
@@ -248,19 +295,35 @@
   function updateWeek(forecast) {
     emptyWeek.hidden = forecast.length > 0;
     week.hidden = forecast.length === 0;
-    const weekValues = forecast.flatMap(([, low, high]) => [low, high]).filter(Number.isFinite);
+    const weekValues = forecast.flatMap(({ low, high }) => [low, high]).filter(Number.isFinite);
     const weekLow = Math.min(...weekValues);
     const scale = 100 / Math.max(1, Math.max(...weekValues) - weekLow);
     Array.from(week.children).forEach((row, index) => {
       const day = forecast[index];
       row.hidden = !day;
       if (!day) return;
-      const [kind, low, high, condition, date] = day;
-      row.toggleAttribute('data-today', date === '今天');
-      row.querySelector('.cavy-day-name').textContent = date;
+      const { kind, low, high, condition, dayLabel } = day;
+      row.toggleAttribute('data-today', day.isToday);
+      row.querySelector('.cavy-day-name').textContent = dayLabel;
       row.querySelector('[data-day-icon]').innerHTML = weatherIcon(kind);
       row.querySelector('.cavy-day-condition').textContent = condition;
-      row.title = `${date} ${condition}`;
+      const details = row.querySelector('details');
+      const dateKey = `${source.placeKey(city)}/${demo ? demoWeather : 'live'}/${day.date || dayLabel}`;
+      if (details.dataset.date !== dateKey) {
+        details.open = false;
+        details.dataset.date = dateKey;
+      }
+      const fields = day.details.map(([name, value]) => {
+        const field = document.createElement('div');
+        const term = document.createElement('dt');
+        const definition = document.createElement('dd');
+        term.textContent = name;
+        definition.textContent = value;
+        field.append(term, definition);
+        return field;
+      });
+      row.querySelector('.cavy-day-details').replaceChildren(...fields);
+      row.querySelector('.cavy-day-empty').hidden = fields.length > 0;
       row.querySelector('.cavy-low').textContent = format(low);
       row.querySelector('.cavy-high').textContent = format(high);
       const hasRange = Number.isFinite(low) && Number.isFinite(high) && high >= low;
@@ -269,11 +332,11 @@
     });
   }
 
-  function render(animate = false) {
-    const scene = demo ? demoForecast() : source.forecast(entry?.data ?? {});
+  function render(animate = false, scene = demo ? demoForecast() : source.forecast(entry)) {
+    renderedForecast = scene;
     const type = weatherTypes[scene.kind];
     const place = location();
-    const placeName = displayedCity();
+    const placeName = city.name;
     weather = scene.sky;
     hero.dataset.condition = weather;
     cityName.textContent = placeName;
@@ -282,7 +345,6 @@
     landscape.textContent = place.landscape;
     landscape.hidden = !place.landscape;
     for (const [key, image] of Object.entries(images)) image.classList.toggle('is-visible', key === place.backdrop);
-    xianButton.setAttribute('aria-pressed', placeName === defaultCity);
     for (const button of choices) button.setAttribute('aria-pressed', button.dataset.weather === weather);
     for (const button of unitButtons) button.setAttribute('aria-pressed', button.dataset.unit === unit);
 
@@ -297,6 +359,10 @@
     for (const key of ['detail', 'note', 'humidity', 'wind', 'uv', 'sunset']) readings[key].textContent = scene[key];
     readings.windDirection.textContent = scene.windDirection ?? '风力';
     readings.detail.hidden = !scene.detail;
+    readings.air.textContent = scene.air ?? '';
+    readings.air.hidden = !scene.air;
+    readings.reported.textContent = scene.reported ? `气象发布 ${scene.reported}` : '';
+    readings.reported.hidden = !scene.reported;
     currentIcon.innerHTML = icon(type.icon);
     updateHours(scene.hours, animate);
     updateWeek(scene.week);
@@ -493,7 +559,7 @@
     demoChoices.hidden = !demo;
     demoBadge.hidden = !demo;
     if (syncState === 'loading') syncLabel.textContent = entry ? `更新中 · ${source.stamp(entry.at)}` : '正在查询';
-    else if (syncState === 'updated') syncLabel.textContent = `${source.time(entry.at)} 已更新`;
+    else if (syncState === 'updated') syncLabel.textContent = `页面刷新 ${source.stamp(entry.at)}`;
     else if (entry) syncLabel.textContent = `缓存 · ${source.stamp(entry.at)}`;
     else syncLabel.textContent = '天气获取失败';
     syncLabel.title = syncLabel.textContent;
@@ -504,6 +570,16 @@
     render(animate);
     if (resetWeather || previousWeather !== weather) startParticles();
     scheduleFrame();
+  }
+
+  function useWeather(selected, next, switching = false) {
+    city = resolvedCity(selected, next.data);
+    entry = next;
+    source.prefs.set('wx-' + source.placeKey(city), JSON.stringify(next));
+    source.prefs.set(cityPreference, JSON.stringify(city));
+    syncState = 'updated';
+    if (switching) hourScroll.scrollLeft = 0;
+    redraw(!demo, switching);
   }
 
   async function refreshWeather() {
@@ -517,14 +593,11 @@
     try {
       const next = await source.get(selected, controller.signal);
       if (request !== controller) return;
-      entry = next;
-      source.prefs.set('wx-' + selected, JSON.stringify(next));
-      source.prefs.set(cityPreference, selected);
-      syncState = 'updated';
-      redraw(!demo);
+      useWeather(selected, next);
     } catch {
       if (request !== controller) return;
       syncState = entry ? 'cached' : 'error';
+      if (!demo) render();
     } finally {
       clearTimeout(timer);
       if (request === controller) {
@@ -534,41 +607,23 @@
     }
   }
 
-  function chooseCity(value) {
-    const selected = cityLabel(value);
-    if (!selected) return;
-    locationDialog.close();
-    cityButton.focus();
-    if (selected === city) {
-      if (syncState === 'error') refreshWeather();
-      return;
-    }
-    city = selected;
-    entry = source.cached(city);
-    if (entry || city === defaultCity) source.prefs.set(cityPreference, city);
-    hourScroll.scrollLeft = 0;
-    redraw(true, true);
-    refreshWeather();
+  async function chooseCity(place, signal) {
+    const selected = defaultOrSelected(place);
+    const switching = source.placeKey(selected) !== source.placeKey(city);
+    if (!switching && entry && syncState === 'updated') return city;
+    const next = await source.get(selected, signal);
+    signal.throwIfAborted();
+    request?.abort();
+    request = undefined;
+    useWeather(selected, next, switching);
+    showSyncStatus();
+    return city;
   }
 
+  const cityPicker = createCityPicker(root, { defaultPlace, activePlace: () => city, chooseCity });
   cityButton.addEventListener('click', () => {
     settings.open = false;
-    locationInput.value = '';
-    locationInput.setCustomValidity('');
-    locationDialog.showModal();
-    xianButton.focus();
-  });
-  root.querySelector('[data-close-location]').addEventListener('click', () => locationDialog.close());
-  xianButton.addEventListener('click', () => chooseCity(defaultCity));
-  locationInput.addEventListener('input', () => locationInput.setCustomValidity(''));
-  locationInput.form.addEventListener('submit', event => {
-    event.preventDefault();
-    if (!cityLabel(locationInput.value)) {
-      locationInput.setCustomValidity('请输入城市名');
-      locationInput.reportValidity();
-      return;
-    }
-    chooseCity(locationInput.value);
+    cityPicker.open();
   });
   document.addEventListener('click', event => {
     if (settings.open && !settings.contains(event.target)) settings.open = false;
@@ -603,7 +658,7 @@
       if (!demo || demoWeather === button.dataset.weather) return;
       demoWeather = button.dataset.weather;
       redraw(true, true);
-      announcement.textContent = `${displayedCity()}，${readings.condition.textContent}演示`;
+      announcement.textContent = `${city.name}，${readings.condition.textContent}演示`;
     });
   }
   for (const button of unitButtons) {
@@ -616,6 +671,7 @@
   }
   motionButton.addEventListener('click', () => {
     motionOverride = !motionEnabled();
+    source.prefs.set('motion', motionOverride ? 'on' : 'off');
     syncMotion();
   });
   refreshButton.addEventListener('click', refreshWeather);
@@ -631,6 +687,15 @@
   }
   demoButton.addEventListener('click', () => setDemo(!demo));
   root.querySelector('[data-end-demo]').addEventListener('click', () => setDemo(false));
+  for (const button of hourModeButtons) {
+    button.addEventListener('click', () => {
+      if (hourView === button.dataset.hourView) return;
+      hourView = button.dataset.hourView;
+      for (const mode of hourModeButtons) mode.setAttribute('aria-pressed', String(mode === button));
+      hourScroll.scrollLeft = 0;
+      updateHours(renderedForecast.hours, false);
+    });
+  }
   hourScroll.addEventListener('scroll', updateHourControls, { passive: true });
   for (const [button, direction] of [[previousHour, -1], [nextHour, 1]]) {
     button.addEventListener('click', () => {
@@ -639,11 +704,23 @@
       hourScroll.scrollBy({ left: direction * columnWidth * steps, behavior: motionEnabled() ? 'smooth' : 'auto' });
     });
   }
-  reducedMotion.addEventListener('change', () => {
-    motionOverride = undefined;
+  function updateForecastTime() {
+    if (!entry || demo || document.hidden) return;
+    const next = source.forecast(entry);
+    if (next.hours.length !== renderedForecast.hours.length
+      || next.hours[1]?.dateLabel !== renderedForecast.hours[1]?.dateLabel
+      || next.week[0]?.dayLabel !== renderedForecast.week[0]?.dayLabel
+      || next.reported !== renderedForecast.reported) {
+      render(false, next);
+      showSyncStatus();
+    }
+  }
+  reducedMotion.addEventListener('change', syncMotion);
+  document.addEventListener('visibilitychange', () => {
     syncMotion();
+    updateForecastTime();
   });
-  document.addEventListener('visibilitychange', syncMotion);
+  setInterval(updateForecastTime, 60000);
   window.addEventListener('online', () => { if (!request) refreshWeather(); });
 
   render();

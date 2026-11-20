@@ -1,9 +1,9 @@
-const release = '05419eef5207a031';
+const release = '7c5d550d52a6855e';
 const scope = new URL(self.registration.scope);
 const home = new URL('index.html', scope);
 const cachePrefix = 'cavy-pages:' + scope.href + ':';
 const cacheName = cachePrefix + release;
-const versioned = ['app.js', 'icons.js', 'style.css', 'weather.js'].map(name => `${name}?v=${release}`);
+const versioned = ['app.js', 'city-picker.js', 'icons.js', 'style.css', 'weather.js'].map(name => `${name}?v=${release}`);
 const resources = [
   ...versioned, 'assets/blink.webp', 'assets/frost.webp', 'assets/mascot.webp', 'assets/neutral.webp',
   'assets/skies.webp', 'assets/xian.webp', 'icon-512.png', 'icon.png', 'manifest.webmanifest'

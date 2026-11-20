@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b121e">
   <meta name="description" content="豚豚气象台，随时查看城市实况、逐时天气和七日预报。">
-  <meta name="weather-release" content="05419eef5207a031">
+  <meta name="weather-release" content="7c5d550d52a6855e">
   <title>豚豚气象台 · 深夜观测站</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
-  <link rel="stylesheet" href="style.css?v=05419eef5207a031">
-  <script src="icons.js?v=05419eef5207a031" defer></script>
-  <script src="weather.js?v=05419eef5207a031" defer></script>
-  <script src="app.js?v=05419eef5207a031" defer></script>
+  <link rel="stylesheet" href="style.css?v=7c5d550d52a6855e">
+  <script src="icons.js?v=7c5d550d52a6855e" defer></script>
+  <script src="weather.js?v=7c5d550d52a6855e" defer></script>
+  <script src="city-picker.js?v=7c5d550d52a6855e" defer></script>
+  <script src="app.js?v=7c5d550d52a6855e" defer></script>
 </head>
 <body>
 <div id="cavy-observatory">
@@ -104,7 +105,11 @@
             </div>
             <p class="cavy-feels" data-value="feels" hidden></p>
             <p class="cavy-range" data-value="range" hidden></p>
-            <p class="cavy-weather-detail" data-value="detail" hidden></p>
+            <div class="cavy-weather-facts">
+              <span class="cavy-weather-detail" data-value="detail" hidden></span>
+              <span class="cavy-weather-detail cavy-air" data-value="air" hidden></span>
+            </div>
+            <p class="cavy-report-time" data-value="reported" hidden></p>
           </div>
         </section>
         <aside class="cavy-note" aria-label="豚豚手记">
@@ -117,12 +122,19 @@
         <section class="cavy-panel" aria-labelledby="cavy-hourly">
           <div class="cavy-panel-heading">
             <h2 class="cavy-heading" id="cavy-hourly">逐时预报</h2>
-            <div class="cavy-hour-controls" role="group" aria-label="逐时预报时段">
-              <button class="cavy-icon-button" type="button" data-hour-previous aria-label="前一组时段" disabled><i data-lucide="chevron-left" aria-hidden="true"></i></button>
-              <button class="cavy-icon-button" type="button" data-hour-next aria-label="后一组时段" disabled><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+            <div class="cavy-hour-toolbar">
+              <div class="cavy-hour-modes" role="group" aria-label="逐时预报项目">
+                <button type="button" data-hour-view="temperature" aria-pressed="true">气温</button>
+                <button type="button" data-hour-view="precipitation" aria-pressed="false">降水</button>
+              </div>
+              <div class="cavy-hour-controls" role="group" aria-label="逐时预报时段">
+                <button class="cavy-icon-button" type="button" data-hour-previous aria-label="前一组时段" disabled><i data-lucide="chevron-left" aria-hidden="true"></i></button>
+                <button class="cavy-icon-button" type="button" data-hour-next aria-label="后一组时段" disabled><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+              </div>
             </div>
           </div>
-          <p class="cavy-empty" data-empty-hours>暂无逐时预报</p>
+          <p class="cavy-rain-hint" data-rain-hint hidden></p>
+          <p class="cavy-empty" data-empty-hours role="status">暂无逐时预报</p>
           <div class="cavy-hour-scroll" role="region" aria-label="逐时天气曲线" tabindex="0" hidden>
             <div class="cavy-hour-track">
               <div class="cavy-hours" aria-hidden="true"></div>
@@ -158,24 +170,42 @@
     <dialog class="cavy-location-dialog" aria-labelledby="cavy-location-title">
       <div class="cavy-dialog-heading">
         <h2 id="cavy-location-title">切换城市</h2>
+        <button type="button" class="cavy-favorite-current" data-favorite-current aria-pressed="false">
+          <i data-lucide="star" aria-hidden="true"></i><span>收藏当前城市</span>
+        </button>
         <button type="button" class="cavy-icon-button" data-close-location aria-label="关闭">
           <i data-lucide="x" aria-hidden="true"></i>
         </button>
       </div>
-      <div class="cavy-location-list">
-        <button type="button" data-location="西安" aria-pressed="true">
-          <i data-lucide="map-pin" aria-hidden="true"></i>
-          <span class="cavy-location-name">西安<span>古城墙</span></span>
-          <i data-lucide="check" aria-hidden="true"></i>
-        </button>
-      </div>
       <form class="cavy-location-form">
-        <label for="cavy-other-city">其他城市</label>
+        <label for="cavy-other-city">搜索城市或区县</label>
         <div class="cavy-location-input">
-          <input id="cavy-other-city" name="city" type="text" placeholder="输入城市名" maxlength="24" required autocomplete="off">
+          <input id="cavy-other-city" name="city" type="text" placeholder="输入名称，如朝阳" maxlength="48" required autocomplete="off" aria-describedby="cavy-location-status">
           <button type="submit">查看</button>
         </div>
       </form>
+      <p class="cavy-location-status" id="cavy-location-status" data-location-status role="status"></p>
+      <section class="cavy-location-section" data-location-matches aria-labelledby="cavy-location-matches" hidden>
+        <h3 id="cavy-location-matches">候选地点</h3>
+        <ul class="cavy-location-list"></ul>
+      </section>
+      <div data-location-shortcuts>
+        <section class="cavy-location-section" data-location-favorites aria-labelledby="cavy-location-favorites" hidden>
+          <h3 id="cavy-location-favorites">收藏城市</h3>
+          <ul class="cavy-location-list"></ul>
+        </section>
+        <section class="cavy-location-section" data-location-recent aria-labelledby="cavy-location-recent" hidden>
+          <h3 id="cavy-location-recent">最近查询</h3>
+          <ul class="cavy-location-list"></ul>
+        </section>
+        <div class="cavy-location-section">
+          <button type="button" class="cavy-place-choice" data-location-default aria-current="true">
+            <i data-lucide="map-pin" aria-hidden="true"></i>
+            <span class="cavy-location-name">西安<small>陕西省 · 古城墙</small></span>
+            <i data-lucide="check" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
     </dialog>
   </article>
 </div>
