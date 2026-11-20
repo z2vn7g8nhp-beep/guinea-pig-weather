@@ -28,6 +28,14 @@ const weatherService = (() => {
   const label = (value, fallback = '—') => typeof value === 'string' && value.trim() ? value.trim() : fallback;
   const measure = (value, suffix = '') => number(value) === null ? '—' : `${number(value)}${suffix}`;
 
+  function windForce(value) {
+    const text = label(value, measure(value));
+    const range = text.match(/^(\d+)\s*[-–—~～至]\s*(\d+)\s*级?$/u);
+    if (range) return `${range[1]}–${range[2]} 级`;
+    const single = text.match(/^(\d+(?:\.\d+)?)\s*级?$/u);
+    return single ? `${single[1]} 级` : text;
+  }
+
   function kindFor(text) {
     if (/雪|冰粒|冰雹|snow|sleet|hail/i.test(text)) return 'snow';
     if (/小雨|毛毛雨|drizzle|light rain/i.test(text)) return 'drizzle';
@@ -45,16 +53,31 @@ const weatherService = (() => {
     const sky = ({ drizzle: 'rain', overcast: 'cloudy' })[kind] ?? kind;
     const days = forecastRows(data.forecast).slice(0, 7);
     const hours = valid(data) ? [[current, kind, '现在', condition]] : [];
+    const now = Date.now();
+    const today = isoDate.format(now);
+    const tomorrow = isoDate.format(now + 24 * 60 * 60 * 1000);
+    let previousDate = today;
+    let previousTime = '';
     for (const hour of forecastRows(data.hourly_forecast).slice(0, 24)) {
-      const time = String(hour.time ?? '').match(/\b(\d{2}:\d{2})(?::\d{2})?\b/)?.[1]
-        ?? String(hour.time ?? '').match(/T(\d{2}:\d{2})/)?.[1];
+      const timestamp = String(hour.time ?? '');
+      const time = timestamp.match(/\b(\d{2}:\d{2})(?::\d{2})?\b/)?.[1]
+        ?? timestamp.match(/T(\d{2}:\d{2})/)?.[1];
       if (!time) continue;
+      const date = timestamp.match(/^\d{4}-\d{2}-\d{2}/u)?.[0];
+      let dayLabel = '';
+      if (date && date !== previousDate) {
+        dayLabel = date === tomorrow ? '明天' : `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`;
+      } else if (!date && time < previousTime) {
+        dayLabel = '明天';
+      }
+      previousDate = date ?? previousDate;
+      previousTime = time;
       const weather = label(hour.weather, '天气待更新');
-      hours.push([number(hour.temperature), kindFor(weather), time, weather]);
+      hours.push([number(hour.temperature), kindFor(weather), time, weather, dayLabel]);
     }
     const week = days.map(day => {
       const weather = label(day.weather_day, '天气待更新');
-      const date = day.date === isoDate.format(Date.now())
+      const date = day.date === today
         ? '今天' : label(day.week, label(day.date)).replace(/^星期/, '周');
       return [kindFor(weather), number(day.temp_min), number(day.temp_max), weather, date];
     });
@@ -76,7 +99,7 @@ const weatherService = (() => {
       high: number(data.temp_max) ?? week[0]?.[2] ?? null,
       detail: number(detail[1]) === null ? '' : `${detail[0]} ${measure(detail[1], detail[2])}`,
       humidity: measure(data.humidity, '%'), windDirection: label(data.wind_direction, '风力'),
-      wind: label(data.wind_power, measure(data.wind_power)), uv: measure(data.uv),
+      wind: windForce(data.wind_power), uv: measure(data.uv),
       sunset: label(days[0]?.sunset), note: current === null ? '天气更新后，豚豚会来记一笔。' : note,
       hours, week
     };

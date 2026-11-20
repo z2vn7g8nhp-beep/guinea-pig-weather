@@ -1,10 +1,13 @@
-const release = '7c3f8b86c9d92b70';
+const release = '05419eef5207a031';
 const scope = new URL(self.registration.scope);
 const home = new URL('index.html', scope);
 const cachePrefix = 'cavy-pages:' + scope.href + ':';
 const cacheName = cachePrefix + release;
-const resources = ["app.js", "assets/blink.webp", "assets/frost.webp", "assets/hangzhou.webp", "assets/harbin.webp", "assets/mascot.webp", "assets/neutral.webp", "assets/qingdao.webp", "assets/shanghai.webp", "assets/skies.webp", "assets/xian.webp", "icon-512.png", "icon.png", "icons.js", "manifest.webmanifest", "seed.js", "style.css", "weather.js"]
-  .map(name => new URL(name, scope).href);
+const versioned = ['app.js', 'icons.js', 'style.css', 'weather.js'].map(name => `${name}?v=${release}`);
+const resources = [
+  ...versioned, 'assets/blink.webp', 'assets/frost.webp', 'assets/mascot.webp', 'assets/neutral.webp',
+  'assets/skies.webp', 'assets/xian.webp', 'icon-512.png', 'icon.png', 'manifest.webmanifest'
+].map(name => new URL(name, scope).href);
 
 async function installRelease() {
   const releaseUrl = new URL(home);

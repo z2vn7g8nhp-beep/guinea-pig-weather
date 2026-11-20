@@ -5,16 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b121e">
   <meta name="description" content="豚豚气象台，随时查看城市实况、逐时天气和七日预报。">
-  <meta name="weather-release" content="7c3f8b86c9d92b70">
+  <meta name="weather-release" content="05419eef5207a031">
   <title>豚豚气象台 · 深夜观测站</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
-  <link rel="stylesheet" href="style.css">
-  <script src="seed.js" defer></script>
-  <script src="icons.js" defer></script>
-  <script src="weather.js" defer></script>
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="style.css?v=05419eef5207a031">
+  <script src="icons.js?v=05419eef5207a031" defer></script>
+  <script src="weather.js?v=05419eef5207a031" defer></script>
+  <script src="app.js?v=05419eef5207a031" defer></script>
 </head>
 <body>
 <div id="cavy-observatory">
@@ -22,113 +21,128 @@
     <header class="cavy-top">
       <div class="cavy-brand">
         <img src="icon.png" width="32" height="32" alt="">
-        <h1>豚豚气象台</h1>
-      </div>
-      <div class="cavy-tools">
-        <button class="cavy-city" type="button" aria-haspopup="dialog" aria-label="切换城市，当前杭州">
-          <i data-lucide="map-pin" aria-hidden="true"></i><span data-city-name>杭州</span><i data-lucide="chevron-down" aria-hidden="true"></i>
-        </button>
-        <div class="cavy-units" role="group" aria-label="温度单位">
-          <button type="button" data-unit="C" aria-label="摄氏度" aria-pressed="true">°C</button>
-          <button type="button" data-unit="F" aria-label="华氏度" aria-pressed="false">°F</button>
+        <div class="cavy-brand-copy">
+          <h1>豚豚气象台</h1>
+          <span data-weather-status role="status">正在查询</span>
         </div>
       </div>
-    </header>
-
-    <div class="cavy-main">
-      <div class="cavy-preview">
-        <div class="cavy-preview-heading">
-          <span data-weather-status role="status">正在查询</span>
-          <div class="cavy-status-controls">
-            <button class="cavy-motion" type="button" data-refresh aria-label="刷新天气">
-              <i data-lucide="refresh-cw" aria-hidden="true"></i>
+      <div class="cavy-tools">
+        <button class="cavy-city" type="button" aria-haspopup="dialog" aria-label="切换城市，当前西安">
+          <i data-lucide="map-pin" aria-hidden="true"></i><span data-city-name>西安</span><i data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
+        <button class="cavy-toolbar-icon" type="button" data-refresh aria-label="刷新天气" title="刷新天气">
+          <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        </button>
+        <details class="cavy-settings">
+          <summary class="cavy-toolbar-icon" aria-label="天气设置" title="天气设置">
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+          </summary>
+          <div class="cavy-settings-panel">
+            <div class="cavy-settings-units">
+              <span>温度单位</span>
+              <div class="cavy-units" role="group" aria-label="温度单位">
+                <button type="button" data-unit="C" aria-label="摄氏度" aria-pressed="true">°C</button>
+                <button type="button" data-unit="F" aria-label="华氏度" aria-pressed="false">°F</button>
+              </div>
+            </div>
+            <button class="cavy-settings-action" type="button" data-demo-toggle aria-expanded="false" aria-controls="cavy-weather-choices">
+              <i data-lucide="cloud-sun" aria-hidden="true"></i><span data-demo-label>动效演示</span>
             </button>
-            <button class="cavy-motion" type="button" data-demo-toggle aria-expanded="false" aria-controls="cavy-weather-choices">动效演示</button>
-            <button class="cavy-motion" type="button" data-motion-control>
+            <button class="cavy-settings-action" type="button" data-motion-control>
               <span data-motion-icon aria-hidden="true"><i data-lucide="pause"></i></span>
               <span data-motion-label>暂停动效</span>
             </button>
           </div>
-        </div>
+        </details>
+      </div>
+    </header>
+
+    <div class="cavy-main">
+      <div class="cavy-overview">
         <div class="cavy-choices" id="cavy-weather-choices" role="group" aria-label="天气演示" hidden>
           <button type="button" data-weather="clear" aria-pressed="false"><i data-lucide="sun" aria-hidden="true"></i>晴天</button>
           <button type="button" data-weather="cloudy" aria-pressed="false"><i data-lucide="cloud-sun" aria-hidden="true"></i>多云</button>
-          <button type="button" data-weather="rain" aria-pressed="true"><i data-lucide="cloud-rain" aria-hidden="true"></i>下雨</button>
+          <button type="button" data-weather="rain" aria-pressed="false"><i data-lucide="cloud-rain" aria-hidden="true"></i>下雨</button>
           <button type="button" data-weather="snow" aria-pressed="false"><i data-lucide="snowflake" aria-hidden="true"></i>下雪</button>
+          <button type="button" data-end-demo>回到实况</button>
         </div>
+        <section class="cavy-hero" data-condition="cloudy" data-playing="false" aria-labelledby="cavy-today">
+          <div class="cavy-art" aria-hidden="true">
+            <img class="cavy-scene is-visible" data-scene="xian" src="assets/xian.webp" alt="" decoding="async">
+            <img class="cavy-scene" data-scene="neutral" src="assets/neutral.webp" alt="" decoding="async">
+            <div class="cavy-sky">
+              <span data-sky="clear"></span>
+              <span data-sky="cloudy"></span>
+              <span data-sky="rain"></span>
+              <span data-sky="snow"></span>
+            </div>
+            <div class="cavy-frost"></div>
+          </div>
+          <canvas class="cavy-atmosphere" aria-hidden="true"></canvas>
+          <button class="cavy-pet" type="button" aria-label="和豚豚打招呼">
+            <span class="cavy-pet-shadow"></span>
+            <span class="cavy-pet-response">
+              <span class="cavy-pet-body">
+                <img class="cavy-pet-image" src="assets/mascot.webp" alt="" decoding="async">
+                <img class="cavy-pet-blink" src="assets/blink.webp" alt="" decoding="async">
+              </span>
+            </span>
+            <span class="cavy-pet-action" aria-hidden="true">打招呼</span>
+            <span class="cavy-pet-feedback" aria-hidden="true" hidden>嗨！</span>
+          </button>
+          <div class="cavy-shade" aria-hidden="true"></div>
+          <span class="cavy-landscape" data-landscape>古城墙</span>
+          <div class="cavy-reading">
+            <div class="cavy-reading-heading">
+              <h2 class="cavy-heading" id="cavy-today">今日天气</h2>
+              <span class="cavy-demo-badge" data-demo-badge hidden>演示</span>
+            </div>
+            <div class="cavy-temperature" data-readout><span data-value="current">—</span><sup hidden>°C</sup></div>
+            <div class="cavy-condition">
+              <span class="cavy-condition-icon" data-current-icon aria-hidden="true"><i data-lucide="cloud-sun"></i></span>
+              <span data-value="condition">天气待更新</span>
+            </div>
+            <p class="cavy-feels" data-value="feels" hidden></p>
+            <p class="cavy-range" data-value="range" hidden></p>
+            <p class="cavy-weather-detail" data-value="detail" hidden></p>
+          </div>
+        </section>
+        <aside class="cavy-note" aria-label="豚豚手记">
+          <span class="cavy-note-label"><i data-lucide="notebook-pen" aria-hidden="true"></i>豚豚手记</span>
+          <p data-value="note">天气更新后，豚豚会来记一笔。</p>
+        </aside>
       </div>
 
-      <section class="cavy-hero" data-condition="cloudy" data-playing="false" aria-labelledby="cavy-today">
-        <div class="cavy-art" aria-hidden="true">
-          <img class="cavy-scene is-visible" data-scene="hangzhou" src="assets/hangzhou.webp" alt="" decoding="async">
-          <img class="cavy-scene" data-scene="shanghai" src="assets/shanghai.webp" alt="" decoding="async">
-          <img class="cavy-scene" data-scene="xian" src="assets/xian.webp" alt="" decoding="async">
-          <img class="cavy-scene" data-scene="qingdao" src="assets/qingdao.webp" alt="" decoding="async">
-          <img class="cavy-scene" data-scene="harbin" src="assets/harbin.webp" alt="" decoding="async">
-          <img class="cavy-scene" data-scene="neutral" src="assets/neutral.webp" alt="" decoding="async">
-          <div class="cavy-sky">
-            <span data-sky="clear"></span>
-            <span data-sky="cloudy"></span>
-            <span data-sky="rain"></span>
-            <span data-sky="snow"></span>
+      <div class="cavy-forecast">
+        <section class="cavy-panel" aria-labelledby="cavy-hourly">
+          <div class="cavy-panel-heading">
+            <h2 class="cavy-heading" id="cavy-hourly">逐时预报</h2>
+            <div class="cavy-hour-controls" role="group" aria-label="逐时预报时段">
+              <button class="cavy-icon-button" type="button" data-hour-previous aria-label="前一组时段" disabled><i data-lucide="chevron-left" aria-hidden="true"></i></button>
+              <button class="cavy-icon-button" type="button" data-hour-next aria-label="后一组时段" disabled><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+            </div>
           </div>
-          <div class="cavy-frost"></div>
-        </div>
-        <button class="cavy-pet" type="button" aria-label="和豚豚打招呼" data-tooltip="点一下，豚豚会探头">
-          <span class="cavy-pet-shadow"></span>
-          <span class="cavy-pet-response">
-            <span class="cavy-pet-body">
-              <img class="cavy-pet-image" src="assets/mascot.webp" alt="" decoding="async">
-              <img class="cavy-pet-blink" src="assets/blink.webp" alt="" decoding="async">
-            </span>
-          </span>
-          <span class="cavy-pet-action" aria-hidden="true">打招呼</span>
-        </button>
-        <canvas class="cavy-atmosphere" aria-hidden="true"></canvas>
-        <div class="cavy-shade" aria-hidden="true"></div>
-        <span class="cavy-landscape" data-landscape>西湖水岸</span>
-        <div class="cavy-reading">
-          <h2 class="cavy-heading" id="cavy-today">今日天气</h2>
-          <div class="cavy-temperature" data-readout><span data-value="current">—</span><sup hidden>°</sup></div>
-          <div class="cavy-condition">
-            <span class="cavy-condition-icon" data-current-icon aria-hidden="true"><i data-lucide="cloud-sun"></i></span>
-            <span data-value="condition">天气待更新</span>
+          <p class="cavy-empty" data-empty-hours>暂无逐时预报</p>
+          <div class="cavy-hour-scroll" role="region" aria-label="逐时天气曲线" tabindex="0" hidden>
+            <div class="cavy-hour-track">
+              <div class="cavy-hours" aria-hidden="true"></div>
+              <svg class="cavy-graph" role="img" aria-label="逐时气温" xmlns="http://www.w3.org/2000/svg">
+                <g class="cavy-grid"></g>
+                <path class="cavy-curve" fill="none"></path>
+                <g class="cavy-points"></g>
+              </svg>
+            </div>
           </div>
-          <p class="cavy-feels" data-value="feels">体感 —</p>
-          <p class="cavy-range" data-value="range">最高 — · 最低 —</p>
-          <p class="cavy-weather-detail" data-value="detail" hidden></p>
-        </div>
-      </section>
+        </section>
 
-      <aside class="cavy-note" aria-label="豚豚手记">
-        <span class="cavy-note-label"><i data-lucide="notebook-pen" aria-hidden="true"></i>豚豚手记</span>
-        <p data-value="note">天气更新后，豚豚会来记一笔。</p>
-      </aside>
+        <section class="cavy-panel" aria-labelledby="cavy-weekly">
+          <h2 class="cavy-heading" id="cavy-weekly">七日预报</h2>
+          <p class="cavy-empty" data-empty-week>暂无七日预报</p>
+          <ul class="cavy-week" hidden></ul>
+        </section>
+      </div>
 
-      <section class="cavy-panel" aria-labelledby="cavy-hourly">
-        <div class="cavy-panel-heading">
-          <h2 class="cavy-heading" id="cavy-hourly">逐时预报</h2>
-          <div class="cavy-hour-controls" aria-label="逐时预报时段">
-            <button class="cavy-icon-button" type="button" data-hour-previous aria-label="前一组时段" disabled><i data-lucide="chevron-left" aria-hidden="true"></i></button>
-            <button class="cavy-icon-button" type="button" data-hour-next aria-label="后一组时段" disabled><i data-lucide="chevron-right" aria-hidden="true"></i></button>
-          </div>
-        </div>
-        <p class="cavy-empty" data-empty-hours hidden>暂无逐时预报</p>
-        <div class="cavy-hours" aria-hidden="true"></div>
-        <svg class="cavy-graph" role="img" aria-label="逐时气温" xmlns="http://www.w3.org/2000/svg">
-          <g class="cavy-grid"></g>
-          <path class="cavy-curve" fill="none"></path>
-          <g class="cavy-points"></g>
-        </svg>
-      </section>
-
-      <section class="cavy-panel" aria-labelledby="cavy-weekly">
-        <h2 class="cavy-heading" id="cavy-weekly">七日预报</h2>
-        <p class="cavy-empty" data-empty-week hidden>暂无七日预报</p>
-        <ul class="cavy-week"></ul>
-      </section>
-
-      <section class="cavy-panel" aria-labelledby="cavy-metrics">
+      <section class="cavy-panel cavy-metrics-panel" aria-labelledby="cavy-metrics">
         <h2 class="cavy-heading" id="cavy-metrics">天气细节</h2>
         <dl class="cavy-metrics">
           <div><dt><i data-lucide="droplet" aria-hidden="true"></i>湿度</dt><dd data-value="humidity">—</dd></div>
@@ -149,19 +163,19 @@
         </button>
       </div>
       <div class="cavy-location-list">
-        <button type="button" data-location="杭州" aria-pressed="true">杭州<span>西湖水岸</span></button>
-        <button type="button" data-location="上海" aria-pressed="false">上海<span>浦江天际线</span></button>
-        <button type="button" data-location="西安" aria-pressed="false">西安<span>古城墙</span></button>
-        <button type="button" data-location="青岛" aria-pressed="false">青岛<span>海湾</span></button>
-        <button type="button" data-location="哈尔滨" aria-pressed="false">哈尔滨<span>北方街景</span></button>
+        <button type="button" data-location="西安" aria-pressed="true">
+          <i data-lucide="map-pin" aria-hidden="true"></i>
+          <span class="cavy-location-name">西安<span>古城墙</span></span>
+          <i data-lucide="check" aria-hidden="true"></i>
+        </button>
       </div>
-      <div class="cavy-location-form">
+      <form class="cavy-location-form">
         <label for="cavy-other-city">其他城市</label>
         <div class="cavy-location-input">
           <input id="cavy-other-city" name="city" type="text" placeholder="输入城市名" maxlength="24" required autocomplete="off">
-          <button type="button" data-custom-location>查看</button>
+          <button type="submit">查看</button>
         </div>
-      </div>
+      </form>
     </dialog>
   </article>
 </div>

@@ -10,6 +10,8 @@
   const curve = graph.querySelector('.cavy-curve');
   const pointGroup = graph.querySelector('.cavy-points');
   const hours = root.querySelector('.cavy-hours');
+  const hourScroll = root.querySelector('.cavy-hour-scroll');
+  const hourTrack = root.querySelector('.cavy-hour-track');
   const week = root.querySelector('.cavy-week');
   const emptyHours = root.querySelector('[data-empty-hours]');
   const emptyWeek = root.querySelector('[data-empty-week]');
@@ -17,20 +19,26 @@
   const nextHour = root.querySelector('[data-hour-next]');
   const syncLabel = root.querySelector('[data-weather-status]');
   const refreshButton = root.querySelector('[data-refresh]');
+  const settings = root.querySelector('.cavy-settings');
+  const settingsButton = settings.querySelector('summary');
   const demoButton = root.querySelector('[data-demo-toggle]');
+  const demoLabel = root.querySelector('[data-demo-label]');
+  const demoBadge = root.querySelector('[data-demo-badge]');
   const demoChoices = root.querySelector('#cavy-weather-choices');
   const motionButton = root.querySelector('[data-motion-control]');
   const motionLabel = root.querySelector('[data-motion-label]');
   const motionIcon = root.querySelector('[data-motion-icon]');
   const pet = root.querySelector('.cavy-pet');
   const petResponse = pet.querySelector('.cavy-pet-response');
+  const petFeedback = pet.querySelector('.cavy-pet-feedback');
   const cityButton = root.querySelector('.cavy-city');
   const cityName = root.querySelector('[data-city-name]');
   const landscape = root.querySelector('[data-landscape]');
   const locationDialog = root.querySelector('.cavy-location-dialog');
   const locationInput = root.querySelector('#cavy-other-city');
-  const locationButtons = Array.from(root.querySelectorAll('[data-location]'));
+  const xianButton = root.querySelector('[data-location]');
   const readout = root.querySelector('[data-readout]');
+  const readoutUnit = readout.querySelector('sup');
   const currentIcon = root.querySelector('[data-current-icon]');
   const announcement = root.querySelector('[data-announcement]');
   const readings = Object.fromEntries(Array.from(root.querySelectorAll('[data-value]'), item => [item.dataset.value, item]));
@@ -52,7 +60,7 @@
   const scenes = {
     clear: {
       current: 25, feels: 26, detail: '能见度 24 km', humidity: '48%', wind: '2级', uv: '4', sunset: '17:02',
-      note: '湖面晒得发亮，适合散步。',
+      note: '阳光正好，豚豚想出去走走。',
       hours: [[25, 'clear'], [26, 'clear'], [24, 'clear'], [22, 'clear'], [20, 'cloudy']],
       week: [['clear', 16, 26], ['clear', 17, 27], ['cloudy', 17, 24], ['drizzle', 16, 22], ['cloudy', 15, 22], ['clear', 16, 24], ['clear', 17, 25]]
     },
@@ -76,24 +84,22 @@
     }
   };
 
-  const locations = new Map([
-    ['杭州', { landscape: '西湖水岸', backdrop: 'hangzhou', weather: 'rain', offset: 0, water: true }],
-    ['上海', { landscape: '浦江天际线', backdrop: 'shanghai', weather: 'cloudy', offset: 1, water: true }],
-    ['西安', { landscape: '古城墙', backdrop: 'xian', weather: 'clear', offset: -8, water: false }],
-    ['青岛', { landscape: '海湾', backdrop: 'qingdao', weather: 'rain', offset: -7, water: true }],
-    ['哈尔滨', { landscape: '北方街景', backdrop: 'harbin', weather: 'snow', offset: -8, water: false }]
-  ]);
-  const neutralLocation = { landscape: '通用天气场景', backdrop: 'neutral', weather: 'cloudy', offset: 0, water: false };
+  const defaultCity = xianButton.dataset.location;
+  const cityPreference = 'selected-city';
+  const legacyPresets = new Set(['杭州', '上海', '西安', '青岛', '哈尔滨']);
+  const previousCity = cityLabel(source.prefs.get('city'));
+  const previousCustomCity = legacyPresets.has(previousCity.replace(/市$/u, '')) ? '' : previousCity;
+  const xianLocation = { landscape: '古城墙', backdrop: 'xian', offset: -8 };
+  const neutralLocation = { landscape: '', backdrop: 'neutral', offset: 0 };
 
   let weather = 'cloudy';
-  let city = cityLabel(source.prefs.get('city')) || '杭州';
-  let entry = source.cached(city) ?? (city === '杭州' ? starter : null);
+  let city = cityLabel(source.prefs.get(cityPreference)) || previousCustomCity || defaultCity;
+  let entry = source.cached(city);
   let syncState = entry ? 'cached' : 'loading';
   let unit = source.prefs.get('unit') === 'F' ? 'F' : 'C';
   let request;
-  let hourlyPage = 0;
   let demo = false;
-  let demoWeather = 'rain';
+  let demoWeather = 'cloudy';
   let motionOverride;
   let inView = true;
   let animationFrame = 0;
@@ -104,10 +110,12 @@
   let particles = [];
   let ripples = [];
   let chartWidth = 0;
+  let chartPoints = [];
   let chartPositions = [];
   let chartTransition;
   let readoutAnimation;
   let greeting;
+  let greetingTimer;
 
   const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
   const weatherIcon = kind => `<span class="cavy-icon" data-icon-weather="${kind}">${icon(weatherTypes[kind].icon)}</span>`;
@@ -116,14 +124,13 @@
   const format = value => Number.isFinite(value) ? `${temperature(value)}°` : '—';
   const random = (min, max) => min + Math.random() * (max - min);
   const motionEnabled = () => motionOverride ?? !reducedMotion.matches;
-  const displayedCity = () => cityLabel(entry?.data.city) || city;
-  const location = () => locations.get(displayedCity()) ?? locations.get(city) ?? neutralLocation;
+  const displayedCity = () => (cityLabel(entry?.data.city) || city).replace(/市$/u, '');
+  const location = () => displayedCity() === defaultCity ? xianLocation : neutralLocation;
 
   function cityLabel(value) {
     if (typeof value !== 'string') return '';
     const clean = value.trim().replace(/\s+/g, ' ').slice(0, 24);
-    const withoutSuffix = clean.replace(/市$/u, '');
-    return locations.has(withoutSuffix) ? withoutSuffix : clean;
+    return clean === `${defaultCity}市` ? defaultCity : clean;
   }
 
   function demoForecast() {
@@ -143,12 +150,6 @@
     };
   }
 
-  for (const time of times) {
-    const item = document.createElement('div');
-    item.className = 'cavy-hour';
-    item.innerHTML = `<span data-hour-time>${time}</span><span data-hour-weather></span>`;
-    hours.append(item);
-  }
   for (const day of weekdays) {
     const row = document.createElement('li');
     row.className = 'cavy-day';
@@ -158,10 +159,6 @@
 
   const svgElement = tag => document.createElementNS('http://www.w3.org/2000/svg', tag);
   const chartLines = Array.from({ length: 3 }, () => grid.appendChild(svgElement('line')));
-  const chartPoints = times.map(() => ({
-    dot: pointGroup.appendChild(svgElement('circle')),
-    label: pointGroup.appendChild(svgElement('text'))
-  }));
 
   function drawGraph() {
     if (!chartWidth) return;
@@ -176,7 +173,6 @@
       const x = (index + 0.5) * chartWidth / chartPositions.length;
       commands.push(`${connected ? 'L' : 'M'}${x} ${y}`);
       connected = true;
-      dot.setAttribute('r', '3.5');
       dot.setAttribute('cx', x);
       dot.setAttribute('cy', y);
       label.setAttribute('x', x);
@@ -199,52 +195,68 @@
     drawGraph();
   }
 
-  function updateForecast(scene, animate) {
-    hourlyPage = Math.min(hourlyPage, Math.max(0, Math.ceil(scene.hours.length / times.length) - 1));
-    const first = hourlyPage * times.length;
-    const hourGroup = scene.hours.slice(first, first + times.length);
-    previousHour.disabled = hourlyPage === 0;
-    nextHour.disabled = first + times.length >= scene.hours.length;
-    const hourlyTemps = hourGroup.map(([value]) => value).filter(Number.isFinite);
-    hours.hidden = hourGroup.length === 0;
+  function updateHourControls() {
+    previousHour.disabled = hourScroll.scrollLeft <= 1;
+    nextHour.disabled = hourScroll.scrollLeft + hourScroll.clientWidth >= hourScroll.scrollWidth - 1;
+  }
+
+  function updateHours(forecast, animate) {
+    const hourlyTemps = forecast.map(([value]) => value).filter(Number.isFinite);
+    hourScroll.hidden = forecast.length === 0;
     graph.hidden = hourlyTemps.length === 0;
-    emptyHours.hidden = hourGroup.length > 0;
-    hours.style.gridTemplateColumns = `repeat(${Math.max(1, hourGroup.length)}, minmax(0, 1fr))`;
+    emptyHours.hidden = forecast.length > 0;
+    hourTrack.style.setProperty('--cavy-hour-count', Math.max(1, forecast.length));
+    hours.replaceChildren();
+    pointGroup.replaceChildren();
+    chartPoints = forecast.map(([value, kind, time, condition, date]) => {
+      const current = time === '现在';
+      const item = document.createElement('div');
+      item.className = 'cavy-hour';
+      item.toggleAttribute('data-current', current);
+      item.innerHTML = '<span class="cavy-hour-date"></span><span class="cavy-hour-time"></span>' + weatherIcon(kind);
+      item.querySelector('.cavy-hour-time').textContent = time;
+      item.querySelector('.cavy-hour-date').textContent = date ?? '';
+      item.title = `${date ?? ''}${time} ${condition}`;
+      hours.append(item);
+
+      const dot = pointGroup.appendChild(svgElement('circle'));
+      const label = pointGroup.appendChild(svgElement('text'));
+      dot.toggleAttribute('data-current', current);
+      label.toggleAttribute('data-current', current);
+      dot.setAttribute('r', current ? '4.5' : '3');
+      label.textContent = format(value);
+      return { dot, label };
+    });
+    graph.setAttribute('aria-label', '逐时气温，' + forecast.map(([value, , time, condition, date]) =>
+      `${date ?? ''}${time}${condition}，${format(value)}`
+    ).join('；'));
+
     const low = Math.min(...hourlyTemps);
     const spread = Math.max(Math.max(...hourlyTemps) - low, 3);
-    const targetPositions = hourGroup.map(([value]) => Number.isFinite(value) ? 57 - 29 * (value - low) / spread : null);
+    const targetPositions = forecast.map(([value]) => Number.isFinite(value) ? 55 - 28 * (value - low) / spread : null);
     if (animate && targetPositions.length && chartPositions.length === targetPositions.length
       && targetPositions.every(Number.isFinite) && chartPositions.every(Number.isFinite) && motionEnabled() && inView) {
       chartTransition = { from: chartPositions, to: targetPositions, start: performance.now() };
     } else {
       chartTransition = undefined;
       chartPositions = targetPositions;
-      drawGraph();
     }
-    graph.setAttribute('aria-label', '逐时气温，' + hourGroup.map(([value, , time, condition]) =>
-      `${time}${condition}，${format(value)}`
-    ).join('；'));
-    Array.from(hours.children).forEach((item, index) => {
-      const hour = hourGroup[index];
-      item.hidden = !hour;
-      if (!hour) return;
-      const [value, kind, time, condition] = hour;
-      item.querySelector('[data-hour-time]').textContent = time;
-      item.querySelector('[data-hour-weather]').innerHTML = weatherIcon(kind);
-      item.title = condition;
-      chartPoints[index].label.textContent = format(value);
-    });
+    resizeGraph();
+    updateHourControls();
+  }
 
-    emptyWeek.hidden = scene.week.length > 0;
-    week.hidden = scene.week.length === 0;
-    const weekValues = scene.week.flatMap(([, low, high]) => [low, high]).filter(Number.isFinite);
+  function updateWeek(forecast) {
+    emptyWeek.hidden = forecast.length > 0;
+    week.hidden = forecast.length === 0;
+    const weekValues = forecast.flatMap(([, low, high]) => [low, high]).filter(Number.isFinite);
     const weekLow = Math.min(...weekValues);
     const scale = 100 / Math.max(1, Math.max(...weekValues) - weekLow);
     Array.from(week.children).forEach((row, index) => {
-      const day = scene.week[index];
+      const day = forecast[index];
       row.hidden = !day;
       if (!day) return;
       const [kind, low, high, condition, date] = day;
+      row.toggleAttribute('data-today', date === '今天');
       row.querySelector('.cavy-day-name').textContent = date;
       row.querySelector('[data-day-icon]').innerHTML = weatherIcon(kind);
       row.querySelector('.cavy-day-condition').textContent = condition;
@@ -268,21 +280,26 @@
     cityButton.setAttribute('aria-label', `切换城市，当前${placeName}`);
     cityButton.title = `切换城市，当前${placeName}`;
     landscape.textContent = place.landscape;
+    landscape.hidden = !place.landscape;
     for (const [key, image] of Object.entries(images)) image.classList.toggle('is-visible', key === place.backdrop);
-    for (const button of locationButtons) button.setAttribute('aria-pressed', button.dataset.location === placeName);
+    xianButton.setAttribute('aria-pressed', placeName === defaultCity);
     for (const button of choices) button.setAttribute('aria-pressed', button.dataset.weather === weather);
     for (const button of unitButtons) button.setAttribute('aria-pressed', button.dataset.unit === unit);
 
     readings.current.textContent = Number.isFinite(scene.current) ? temperature(scene.current) : '—';
-    readout.querySelector('sup').hidden = !Number.isFinite(scene.current);
+    readoutUnit.textContent = `°${unit}`;
+    readoutUnit.hidden = !Number.isFinite(scene.current);
     readings.condition.textContent = scene.condition;
     readings.feels.textContent = `体感 ${format(scene.feels)}`;
+    readings.feels.hidden = !Number.isFinite(scene.feels);
     readings.range.textContent = `最高 ${format(scene.high)} · 最低 ${format(scene.low)}`;
+    readings.range.hidden = !Number.isFinite(scene.high) && !Number.isFinite(scene.low);
     for (const key of ['detail', 'note', 'humidity', 'wind', 'uv', 'sunset']) readings[key].textContent = scene[key];
     readings.windDirection.textContent = scene.windDirection ?? '风力';
     readings.detail.hidden = !scene.detail;
     currentIcon.innerHTML = icon(type.icon);
-    updateForecast(scene, animate);
+    updateHours(scene.hours, animate);
+    updateWeek(scene.week);
     refreshIcons();
 
     readoutAnimation?.cancel();
@@ -327,7 +344,6 @@
 
   function drawRain(step) {
     const slant = 0.22 + Math.sin(elapsed * 1.1) * 0.06;
-    const rippleLimit = location().water ? 20 : 11;
     context.lineCap = 'round';
     context.strokeStyle = '#c6e3f7';
     for (const drop of particles) {
@@ -336,15 +352,14 @@
       drop.x -= speed * slant * step;
       drop.y += speed * step;
       if (drop.y > drop.ground) {
-        if (drop.x > width * 0.39 && drop.x < width * 0.64 && drop.depth > 0.5 && ripples.length < rippleLimit) {
+        if (drop.x > width * 0.39 && drop.x < width * 0.64 && drop.depth > 0.5 && ripples.length < 11) {
           ripples.push({ x: drop.x, y: drop.ground, age: 0 });
         }
         drop.x = random(0, width + width * 0.22);
         drop.y = random(-48, -12);
       }
       if (drop.x < -18) drop.x = width + 14;
-      const inFrontOfPet = drop.x > width * 0.59 && drop.y > height * 0.52;
-      context.globalAlpha = (0.22 + 0.42 * drop.depth) * (inFrontOfPet ? 0.58 : 1);
+      context.globalAlpha = 0.22 + 0.42 * drop.depth;
       context.lineWidth = 0.48 + drop.depth * 0.68;
       context.beginPath();
       context.moveTo(drop.x + length * slant, drop.y - length);
@@ -404,15 +419,6 @@
     context.globalAlpha = brightness;
     context.fillStyle = glow;
     context.fillRect(0, 0, width, height);
-    if (!location().water) return;
-    context.fillStyle = '#ffe09b';
-    for (const light of particles) {
-      const glint = Math.pow(Math.max(0, Math.sin(elapsed * (1.7 + light.depth) + light.phase)), 3);
-      context.globalAlpha = glint * (0.22 + light.depth * 0.38);
-      const x = width * (0.48 + 0.128 * light.x / width) + Math.sin(elapsed + light.phase) * 3;
-      const y = height * (0.69 + 0.135 * light.y / height);
-      context.fillRect(x, y, 2 + light.depth * 7, 0.7 + light.depth * 0.5);
-    }
   }
 
   function drawWeather(step) {
@@ -483,13 +489,14 @@
   function showSyncStatus() {
     refreshButton.disabled = syncState === 'loading';
     demoButton.setAttribute('aria-expanded', demo);
-    demoButton.textContent = demo ? '回到实况' : '动效演示';
+    demoLabel.textContent = demo ? '回到实况' : '动效演示';
     demoChoices.hidden = !demo;
-    if (demo) syncLabel.textContent = '演示数据';
-    else if (syncState === 'loading') syncLabel.textContent = '正在查询';
+    demoBadge.hidden = !demo;
+    if (syncState === 'loading') syncLabel.textContent = entry ? `更新中 · ${source.stamp(entry.at)}` : '正在查询';
     else if (syncState === 'updated') syncLabel.textContent = `${source.time(entry.at)} 已更新`;
     else if (entry) syncLabel.textContent = `缓存 · ${source.stamp(entry.at)}`;
     else syncLabel.textContent = '天气获取失败';
+    syncLabel.title = syncLabel.textContent;
   }
 
   function redraw(animate, resetWeather = false) {
@@ -512,7 +519,7 @@
       if (request !== controller) return;
       entry = next;
       source.prefs.set('wx-' + selected, JSON.stringify(next));
-      source.prefs.set('city', selected);
+      source.prefs.set(cityPreference, selected);
       syncState = 'updated';
       redraw(!demo);
     } catch {
@@ -537,40 +544,49 @@
       return;
     }
     city = selected;
-    entry = source.cached(city) ?? (city === '杭州' ? starter : null);
-    if (entry) source.prefs.set('city', city);
-    hourlyPage = 0;
-    demoWeather = location().weather;
+    entry = source.cached(city);
+    if (entry || city === defaultCity) source.prefs.set(cityPreference, city);
+    hourScroll.scrollLeft = 0;
     redraw(true, true);
     refreshWeather();
   }
 
   cityButton.addEventListener('click', () => {
+    settings.open = false;
     locationInput.value = '';
     locationInput.setCustomValidity('');
     locationDialog.showModal();
-    (locationButtons.find(button => button.dataset.location === displayedCity()) ?? locationInput).focus();
+    xianButton.focus();
   });
   root.querySelector('[data-close-location]').addEventListener('click', () => locationDialog.close());
-  for (const button of locationButtons) button.addEventListener('click', () => chooseCity(button.dataset.location));
+  xianButton.addEventListener('click', () => chooseCity(defaultCity));
   locationInput.addEventListener('input', () => locationInput.setCustomValidity(''));
-  function chooseCustomCity() {
+  locationInput.form.addEventListener('submit', event => {
+    event.preventDefault();
     if (!cityLabel(locationInput.value)) {
       locationInput.setCustomValidity('请输入城市名');
       locationInput.reportValidity();
       return;
     }
     chooseCity(locationInput.value);
-  }
-  root.querySelector('[data-custom-location]').addEventListener('click', chooseCustomCity);
-  locationInput.addEventListener('keydown', event => {
-    if (event.key === 'Enter' && !event.isComposing) {
-      event.preventDefault();
-      chooseCustomCity();
+  });
+  document.addEventListener('click', event => {
+    if (settings.open && !settings.contains(event.target)) settings.open = false;
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && settings.open) {
+      settings.open = false;
+      settingsButton.focus();
     }
   });
   pet.addEventListener('click', () => {
+    clearTimeout(greetingTimer);
+    petFeedback.hidden = false;
     announcement.textContent = '豚豚向你打招呼。';
+    greetingTimer = setTimeout(() => {
+      petFeedback.hidden = true;
+      announcement.textContent = '';
+    }, 1650);
     if (!motionEnabled()) return;
     greeting?.cancel();
     greeting = petResponse.animate([
@@ -603,17 +619,24 @@
     syncMotion();
   });
   refreshButton.addEventListener('click', refreshWeather);
-  demoButton.addEventListener('click', () => {
-    demo = !demo;
-    hourlyPage = 0;
+  function setDemo(active) {
+    demo = active;
+    settings.open = false;
+    hourScroll.scrollLeft = 0;
     if (demo) demoWeather = weather;
     redraw(true);
     showSyncStatus();
-  });
+    const focusTarget = demo ? choices.find(button => button.dataset.weather === demoWeather) : settingsButton;
+    focusTarget?.focus();
+  }
+  demoButton.addEventListener('click', () => setDemo(!demo));
+  root.querySelector('[data-end-demo]').addEventListener('click', () => setDemo(false));
+  hourScroll.addEventListener('scroll', updateHourControls, { passive: true });
   for (const [button, direction] of [[previousHour, -1], [nextHour, 1]]) {
     button.addEventListener('click', () => {
-      hourlyPage += direction;
-      redraw(true);
+      const columnWidth = hourTrack.clientWidth / chartPoints.length;
+      const steps = Math.max(1, Math.floor(hourScroll.clientWidth / columnWidth) - 1);
+      hourScroll.scrollBy({ left: direction * columnWidth * steps, behavior: motionEnabled() ? 'smooth' : 'auto' });
     });
   }
   reducedMotion.addEventListener('change', () => {
@@ -625,17 +648,18 @@
 
   render();
   showSyncStatus();
-  resizeGraph();
   resizeWeather();
   syncMotion();
   const sizeObserver = new ResizeObserver(entries => {
     for (const { target } of entries) {
       if (target === hero) resizeWeather();
       if (target === graph) resizeGraph();
+      if (target === hourScroll) updateHourControls();
     }
   });
   sizeObserver.observe(hero);
   sizeObserver.observe(graph);
+  sizeObserver.observe(hourScroll);
   new IntersectionObserver(([entry]) => {
     inView = entry.isIntersecting;
     syncMotion();
